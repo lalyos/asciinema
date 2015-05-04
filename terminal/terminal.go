@@ -38,6 +38,9 @@ func (p *Pty) Record(command string, stdoutCopy io.Writer) error {
 	cmd := exec.Command("sh", "-c", command)
 	cmd.Env = append(os.Environ(), "ASCIINEMA_REC=1")
 	master, err := pty.Start(cmd)
+
+	record, _ := os.Create("/tmp/asciinema.txt")
+
 	if err != nil {
 		return err
 	}
@@ -68,7 +71,8 @@ func (p *Pty) Record(command string, stdoutCopy io.Writer) error {
 	p.resize(master)
 
 	// start stdin -> master copying
-	stop := util.Copy(master, p.Stdin)
+	multiwriter := io.MultiWriter(record, master)
+	stop := util.Copy(multiwriter, p.Stdin)
 
 	// copy pty master -> p.stdout & stdoutCopy
 	stdout := io.MultiWriter(p.Stdout, stdoutCopy)
